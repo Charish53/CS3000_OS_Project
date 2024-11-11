@@ -85,8 +85,4 @@ rm filename.txt
 
 This project is a deep dive into understanding how a shell operates at a fundamental level, making it a great hands-on experience with system-level programming. It’s compact, practical, and covers essential shell functionality, perfect for anyone curious about what goes on behind the scenes of a command-line interface.
 
-## 🌐 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
 ---
