@@ -1,5 +1,3 @@
-Here's a README with example images after each command:
-
 ---
 
 # 🐚 `csh` - A Custom Shell in C
@@ -92,8 +90,3 @@ This project is a deep dive into understanding how a shell operates at a fundame
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ---
-
-
-
-
-This approach will provide a professional, easy-to-navigate README that visually demonstrates your shell’s functionality!
