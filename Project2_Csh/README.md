@@ -1,8 +1,4 @@
-Adding images to demonstrate each command in action is a fantastic idea for enhancing your README! Here’s how you can do it effectively. First, ensure you have images/screenshots of each command’s output. You can host these images directly in your GitHub repository or use an external image hosting service.
-
-To include images after each command in your README, upload the images to the repo or a dedicated `images` folder, then reference them with Markdown syntax.
-
-Here's an updated README with example images after each command:
+Here's a README with example images after each command:
 
 ---
 
