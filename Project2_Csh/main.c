@@ -4,12 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-/* execute our shell process from shell.c
-*/
-/* get shell executable first - gcc shell.c -o myshell
-*  create run executable then - gcc run.c -o Cshell
-*  Usage - ./Cshell
-*/
+
 int main(int argc,char* argv[])
 {
     int ret;
@@ -31,7 +26,6 @@ int main(int argc,char* argv[])
         // open gnome-terminal and hold
         // if you want parent to run, remove --disable-factory argument
         ret = execlp("/usr/bin/gnome-terminal", "gnome-terminal", "--disable-factory", "-e", "./myshell", NULL);
-        // in case of error , print
         if(ret==-1)
         {
             perror("Execvp failed :/ \n");
@@ -40,7 +34,6 @@ int main(int argc,char* argv[])
     }
     else
     {
-        // parent process - wait for child to finish
         wait(&status);
         printf("+--- Closed shell, exit status = %d\n",status);
     }
