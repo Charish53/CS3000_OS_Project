@@ -1,3 +1,0 @@
-Another file with different content.
-Testing for text manipulation.
-Each line might be different.
