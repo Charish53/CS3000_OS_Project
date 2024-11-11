@@ -74,7 +74,7 @@ rm filename.txt
 
 ## 📚 Project Structure
 
-- **`csh.c`** - Core implementation of the shell.
+- **`shell.c`** - Core implementation of the shell.
 - **`Makefile`** - For building the project with ease.
 - **`README.md`** - You’re reading it!
 
