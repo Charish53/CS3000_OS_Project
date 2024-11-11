@@ -10,6 +10,7 @@
 #include <grp.h>
 #include <pwd.h>
 #include <time.h>
+#include<ctype.h>
 #include <fcntl.h>
 #include<signal.h>
 #define BUFSIZE 1000
@@ -26,6 +27,30 @@
 #ifndef DT_DIR
 #define DT_DIR 4  // Value for directories
 #endif
+
+// colour guide - https://github.com/shiena/ansicolor/blob/master/README.md
+/*
+* Usage - make clean ; clear ; make ; ./Cshell
+*/
+/* implement shell functions
+*/
+/* Instructions to support :
+*  cd <dir>                                 - Done cd
+*  pwd                                      - Done pwd
+*  mkdir <dir>                              - Done mkdir
+*  rmdir <dir>                              - Done rmdir
+*  ls (support ls -l)                       - Done ls & -l
+*  cp <file1> <file2>                       - Done cp
+*  exit                                     - Done exit
+*  execute any other command like ./a.out   - Done exec
+* support background execution - &          - Done &
+* redirect input output >, <                - Done
+*  a.out | b.out - must support a| b| c     - Done
+* Additional - clear
+* Additional - screenfetch
+* Additional - up down keys, history- ?
+* Additional - tab keys autocompletiton
+*/
 
 struct _instr
 {
@@ -58,6 +83,7 @@ void function_rm(char* filename);
 void function_lsl();
 void function_cp(char*, char*);
 void function_mv(char* source, char* destination);
+void function_wc(char* filename);  // Function prototype for function_wc
 
 void function_grep(int argc, char *argv[]);
 void executable();
@@ -161,11 +187,7 @@ int main(int argc, char* argv[])
             {
                 printf("grep: invalid file name: empty string\n");
             }
-        }
-
-       
-        
-
+        }     
         else if (strcmp(argval[0], "wc") == 0 && !inBackground)
         {
             char* filename = argval[1];
@@ -203,9 +225,7 @@ int main(int argc, char* argv[])
             {
                 printf("+--- Error in mv: insufficient parameters\n");
             }
-        }
-
-       
+        }       
         else if (strcmp(argval[0], "rm") == 0 && !inBackground)
         {
             char* filename = argval[1];
@@ -224,137 +244,6 @@ int main(int argc, char* argv[])
         }
     }
 }
-
-void function_mv(char* source, char* destination)
-{
-    // Check if source file exists
-    if (access(source, F_OK) == -1) {
-        printf("+--- Error in mv: Source file does not exist\n");
-        return;
-    }
-
-    // Attempt to rename (move) the file
-    if (rename(source, destination) == 0) {
-        printf("+--- File moved successfully: %s -> %s\n", source, destination);
-    } else {
-        perror("+--- Error in mv: ");
-    }
-}
-
-
-void function_rm(char* filename)
-{
-    // Check if the file exists before attempting to remove it
-    if (access(filename, F_OK) == -1) {
-        printf("+--- Error in rm: File does not exist\n");
-        return;
-    }
-
-    // Attempt to remove the file
-    if (remove(filename) == 0) {
-        printf("+--- File removed successfully: %s\n", filename);
-    } else {
-        perror("+--- Error in rm: ");
-    }
-}
-
-void function_wc(char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("Error: Cannot open file %s\n", filename);
-        return;
-    }
-
-    int lines = 0, words = 0, bytes = 0;
-    char c;
-    int inWord = 0;  // Flag to track whether we are inside a word
-
-    while ((c = fgetc(file)) != EOF) {
-        bytes++;
-        if (c == '\n') {
-            lines++;
-        }
-        if (isspace(c)) {
-            if (inWord) {
-                words++;
-                inWord = 0;
-            }
-        } else {
-            inWord = 1;
-        }
-    }
-
-    if (inWord) {
-        words++;  // For the last word in the file, if not followed by space
-    }
-     if (lines == 0 && bytes > 0) {
-        lines = 1;  // If there are bytes but no lines, it means there's at least one line
-    }
-
-    fclose(file);
-
-    printf("%d %d %d %s\n", lines, words, bytes, filename);
-}
-
-
-void function_grep(int argc, char* argv[]) {
-    // Check if sufficient arguments are passed
-    if (argc < 3) {
-        printf("Error: Missing pattern or file name for grep command.\n");
-        return;
-    }
-
-    char* pattern = argv[1];  // The pattern to search for
-    char* filename = argv[2];  // The file to search in
-
-    FILE* file = fopen(filename, "r");  // Open the file in read mode
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
-
-    char line[1024];  // Buffer to store each line
-    int line_number = 0;  // Line number for better display
-    int found = 0;  // Flag to check if we found the pattern in any line
-
-    // Read the file line by line using fgets
-    while (fgets(line, sizeof(line), file)) {
-        line_number++;  // Increment line number
-
-        // Debug print to see the content of each line being read
-        printf("Checking line %d: %s", line_number, line);
-
-        // Check if the pattern exists in the current line using strstr
-        if (strstr(line, pattern)) {
-            printf("Match found at line %d: %s", line_number, line);  // Print the line with the line number
-            found = 1;  // Set found flag if pattern is found
-        }
-    }
-
-    if (!found) {
-        printf("No matches found for pattern: %s\n", pattern);
-    }
-
-    fclose(file);  // Close the file after reading
-}
-
-
-
-
-void function_cat(char* filename) {
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        fprintf(stderr, "cat: %s: No such file or directory\n", filename);
-        return;
-    }
-    char line[1024];
-    while (fgets(line, sizeof(line), file) != NULL) {
-        printf("%s", line);
-    }
-    fclose(file);
-}
-
-
 /*get input containing spaces and tabs and store it in argval*/
 void getInput()
 {
@@ -384,7 +273,192 @@ void getInput()
 }
 
 
-// Next 2 functions are called by executable() */
+
+
+/* list cwd contents*/
+void function_ls()
+{
+    int i=0;
+    struct dirent **listr;
+    int listn = scandir(".", &listr, 0, NULL);
+    if (listn >= 0)
+    {
+        printf("%s+--- Total %d objects in this directory\n",CYAN,listn-2);
+        for(i = 0; i < listn; i++ )
+        {
+            if(strcmp(listr[i]->d_name,".")==0 || strcmp(listr[i]->d_name,"..")==0)
+            {
+                continue;
+            }
+            else nameFile(listr[i],"    ");
+            if(i%8==0) printf("\n");
+        }
+        printf("\n");
+    }
+    else
+    {
+        perror ("+--- Error in ls ");
+    }
+
+}
+void function_cat(char* filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        fprintf(stderr, "cat: %s: No such file or directory\n", filename);
+        return;
+    }
+    char line[1024];
+    while (fgets(line, sizeof(line), file) != NULL) {
+        printf("%s", line);
+    }
+    fclose(file);
+}
+void function_grep(int argc, char* argv[]) {
+    // Check if sufficient arguments are passed
+    if (argc < 3) {
+        printf("Error: Missing pattern or file name for grep command.\n");
+        return;
+    }
+    char* pattern = argv[1];  // The pattern to search for
+    char* filename = argv[2];  // The file to search in
+    FILE* file = fopen(filename, "r");  // Open the file in read mode
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+    char line[1024];  // Buffer to store each line
+    int line_number = 0;  // Line number for better display
+    int found = 0;  // Flag to check if we found the pattern in any line
+    // Read the file line by line using fgets
+    while (fgets(line, sizeof(line), file)) {
+        line_number++;  // Increment line number
+        // Debug print to see the content of each line being read
+        printf("Checking line %d: %s", line_number, line);
+        // Check if the pattern exists in the current line using strstr
+        if (strstr(line, pattern)) {
+            printf("Match found at line %d: %s", line_number, line);  // Print the line with the line number
+            found = 1;  // Set found flag if pattern is found
+        }
+    }
+    if (!found) {
+        printf("No matches found for pattern: %s\n", pattern);
+    }
+    fclose(file);  // Close the file after reading
+}
+void function_wc(char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Error: Cannot open file %s\n", filename);
+        return;
+    }
+    int lines = 0, words = 0, bytes = 0;
+    char c;
+    int inWord = 0;  // Flag to track whether we are inside a word
+    while ((c = fgetc(file)) != EOF) {
+        bytes++;
+        if (c == '\n') {
+            lines++;
+        }
+        if (isspace(c)) {
+            if (inWord) {
+                words++;
+                inWord = 0;
+            }
+        } else {
+            inWord = 1;
+        }
+    }
+    if (inWord) {
+        words++;  // For the last word in the file, if not followed by space
+    }
+     if (lines == 0 && bytes > 0) {
+        lines = 1;  // If there are bytes but no lines, it means there's at least one line
+    }
+    fclose(file);
+    printf("%d %d %d %s\n", lines, words, bytes, filename);
+}
+void function_cp(char* file1, char* file2)
+{
+    FILE *f1,*f2;
+    struct stat t1,t2;
+    f1 = fopen(file1,"r");
+    if(f1 == NULL)
+    {
+        perror("+--- Error in cp file1 ");
+        return;
+    }
+    f2 = fopen(file2,"r");// if file exists
+    if(f2)
+    {
+        // file2 exists
+        // file1 must be more recently updated
+        stat(file1, &t1);
+        stat(file2, &t2);
+        if(difftime(t1.st_mtime,t2.st_mtime) < 0)
+        {
+            printf("+--- Error in cp : %s is more recently updated than %s\n",file2,file1);
+            fclose(f1);
+            fclose(f2);
+            return;
+        }
+    }
+    f2 = fopen(file2,"ab+"); // create the file if it doesn't exist
+    fclose(f2);
+
+    f2 = fopen(file2,"w+");
+    if(f2 == NULL)
+    {
+        perror("Error in cp file2 ");
+        fclose(f1);
+        return;
+    }
+    //if(access(file2,W_OK)!=0 || access(file1,R_OK)!=0 || access(file2,F_OK)!=0)
+    if(open(file2,O_WRONLY)<0 || open(file1,O_RDONLY)<0)
+    {
+        perror("Error in cp access ");
+        return;
+    }
+    char cp;
+    while((cp=getc(f1))!=EOF)
+    {
+        putc(cp,f2);
+    }
+    printf("File copied from %s to %s\n", file1, file2);
+    fclose(f1);
+    fclose(f2);
+}
+void function_mv(char* source, char* destination)
+{
+    // Check if source file exists
+    if (access(source, F_OK) == -1) {
+        printf("+--- Error in mv: Source file does not exist\n");
+        return;
+    }
+    // Attempt to rename (move) the file
+    if (rename(source, destination) == 0) {
+        printf("+--- File moved successfully: %s -> %s\n", source, destination);
+    } else {
+        perror("+--- Error in mv: ");
+    }
+}
+
+
+void function_rm(char* filename)
+{
+    // Check if the file exists before attempting to remove it
+    if (access(filename, F_OK) == -1) {
+        printf("+--- Error in rm: File does not exist\n");
+        return;
+    }
+
+    // Attempt to remove the file
+    if (remove(filename) == 0) {
+        printf("+--- File removed successfully: %s\n", filename);
+    } else {
+        perror("+--- Error in rm: ");
+    }
+}
+ // Next 2 functions are called by executable() */
 /* use execvp to run the command, check path, and handle erors*/
 void runprocess(char * cli, char* args[], int count)
 {
@@ -489,7 +563,7 @@ void pipe_dup(int n, instruction* command)
 }
 
 
-/* executables like ./a.out */
+ /* executables like ./a.out */
 void executable()
 {
     instruction command[INPBUF];
@@ -558,57 +632,8 @@ void executable()
 }
 
 
-/* copy one file to another */
-void function_cp(char* file1, char* file2)
-{
-    FILE *f1,*f2;
-    struct stat t1,t2;
-    f1 = fopen(file1,"r");
-    if(f1 == NULL)
-    {
-        perror("+--- Error in cp file1 ");
-        return;
-    }
-    f2 = fopen(file2,"r");// if file exists
-    if(f2)
-    {
-        // file2 exists
-        // file1 must be more recently updated
-        stat(file1, &t1);
-        stat(file2, &t2);
-        if(difftime(t1.st_mtime,t2.st_mtime) < 0)
-        {
-            printf("+--- Error in cp : %s is more recently updated than %s\n",file2,file1);
-            fclose(f1);
-            fclose(f2);
-            return;
-        }
-    }
-    f2 = fopen(file2,"ab+"); // create the file if it doesn't exist
-    fclose(f2);
 
-    f2 = fopen(file2,"w+");
-    if(f2 == NULL)
-    {
-        perror("Error in cp file2 ");
-        fclose(f1);
-        return;
-    }
-    //if(access(file2,W_OK)!=0 || access(file1,R_OK)!=0 || access(file2,F_OK)!=0)
-    if(open(file2,O_WRONLY)<0 || open(file1,O_RDONLY)<0)
-    {
-        perror("Error in cp access ");
-        return;
-    }
-    char cp;
-    while((cp=getc(f1))!=EOF)
-    {
-        putc(cp,f2);
-    }
-    printf("File copied from %s to %s\n", file1, file2);
-    fclose(f1);
-    fclose(f2);
-}
+
 
 
 /* Just a fancy name printing function*/
@@ -629,7 +654,7 @@ void nameFile(struct dirent* name,char* followup)
 }
 
 
-/*ls -l  lists date permissions etc*/
+ /*ls -l  lists date permissions etc*/
 void function_lsl()
 {
     int i=0,total=0;
@@ -683,39 +708,14 @@ void function_lsl()
     }
 }
 
-/* list cwd contents*/
-void function_ls()
-{
-    int i=0;
-    struct dirent **listr;
-    int listn = scandir(".", &listr, 0, NULL);
-    if (listn >= 0)
-    {
-        printf("%s+--- Total %d objects in this directory\n",CYAN,listn-2);
-        for(i = 0; i < listn; i++ )
-        {
-            if(strcmp(listr[i]->d_name,".")==0 || strcmp(listr[i]->d_name,"..")==0)
-            {
-                continue;
-            }
-            else nameFile(listr[i],"    ");
-            if(i%8==0) printf("\n");
-        }
-        printf("\n");
-    }
-    else
-    {
-        perror ("+--- Error in ls ");
-    }
 
-}
 
 
 /* clear the screen*/
 void function_clear()
 {
     const char* blank = "\e[1;1H\e[2J";
-    write(STDOUT_FILENO,blank,12);
+    write(STDOUT_FILENO,blank,strlen(blank));
 }
 
 /* remove folder */
@@ -777,19 +777,19 @@ void function_pwd(char* cwdstr,int command)
 }
 
 void screenfetch() {
-    char* welcomestr = "\n"
-        "         _____       __    \n"
-        "  ______|__  |_____|__|  |  ____\n"
-        " /  ___/   |  _   \\__  |  | / __ \\\n"
-        " \\  \\___   | / |  /  | |  | \\_\\ \\\n"
-        "  \\___  >  |___|  \\__|_|  |\\____/  \n"
-        "      \\/               \\__|/      \n"
-        "  ----------------------------\n"
-        "     Welcome to CShell!       \n"
-        "  ----------------------------\n";
-    
-    printf("%s", welcomestr);
+    char* art = "\
+_______________________  __\n\
+__  ____/__  ___/___  / / /\n\
+_  /     _____ \\ __  /_/ / \n\
+/ /___   ____/ / _  __  /  \n\
+\\____/   /____/  /_/ /_/   \n\
+                            \n\
+welcome to C-shell\n";
+
+    printf("%s", art);
 }
+
+
 
 void about() {
     char* descr = "\n"
@@ -804,7 +804,7 @@ void about() {
         "       A powerful shell     \n"
         "       with custom commands.\n"
         "  ---------------------------\n"
-        "    Developed by: Your Name  \n"
+        "    Developed by: CS22B10  93,95,96,97  \n"
         "    Version: 1.0             \n"
         "    Year: 2024               \n";
     
