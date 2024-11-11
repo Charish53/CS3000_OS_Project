@@ -38,7 +38,7 @@ Once `csh` is running, you can start using the supported commands just as you wo
 ```bash
 ls
 ```
-![ls command output](images/image.png)
+![ls command output](images/ls.png)
 
 ### `cat` - Display contents of a file
 ```bash
@@ -68,7 +68,7 @@ mv oldname.txt newname.txt
 ```bash
 rm filename.txt
 ```
-![rm command output](images/rm.png)
+![rm command output](images/rm(2).png)
 
 ## 📚 Project Structure
 
