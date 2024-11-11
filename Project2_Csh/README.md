@@ -68,7 +68,7 @@ mv oldname.txt newname.txt
 ```bash
 rm filename.txt
 ```
-![rm command output](images/rm(2).png)
+![rm command output](images/rm (2).png)
 
 ## 📚 Project Structure
 
